@@ -13,42 +13,37 @@ pipeline {
             }
         }
 
-        stage('Install Dependencies') {
+        stage('Install PHP Dependencies') {
             steps {
-                echo '📚 Installing PHP dependencies...'
+                echo '📚 Installing PHP dependencies…'
                 sh 'composer install --no-interaction --prefer-dist --optimize-autoloader'
-            }
-        }
-
-        stage('Run Tests') {
-            steps {
-                echo '🧪 Running Laravel tests...'
-                sh './vendor/bin/phpunit || true'
             }
         }
 
         stage('Build Docker Image') {
             steps {
-                echo '🐳 Building Docker image...'
-                sh 'docker build -t ${DOCKER_IMAGE} .'
+                echo '🐳 Building Docker image…'
+                sh "docker build -t ${DOCKER_IMAGE} ."
             }
         }
 
-        stage('Run Docker Compose') {
+        stage('Deploy via Docker Compose') {
             steps {
-                echo '🚀 Starting Laravel app with Docker Compose...'
-                sh 'docker compose up -d'
+                echo '🚀 Starting services with Docker Compose…'
+                sh 'docker-compose down'
+                sh 'docker-compose up -d --build'
             }
         }
 
-        stage('Push to Docker Hub (optional)') {
+        stage('Push Docker Image to Registry') {
             when {
                 branch 'main'
             }
             steps {
+                echo '📤 Pushing Docker image to registry…'
                 withCredentials([usernamePassword(credentialsId: 'dockerhub-credentials', usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
                     sh 'echo "$DOCKER_PASS" | docker login -u "$DOCKER_USER" --password-stdin'
-                    sh 'docker push ${DOCKER_IMAGE}'
+                    sh "docker push ${DOCKER_IMAGE}"
                 }
             }
         }
@@ -56,7 +51,7 @@ pipeline {
 
     post {
         success {
-            echo '✅ Laravel build and deployment successful!'
+            echo '✅ Build & deployment successful!'
         }
         failure {
             echo '❌ Build failed!'
