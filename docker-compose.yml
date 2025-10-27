@@ -1,0 +1,92 @@
+version: "3.8"
+
+services:
+    app:
+        build:
+            context: .
+            dockerfile: Dockerfile
+        container_name: desa-bantengputih-app
+        restart: unless-stopped
+        ports:
+            - "8000:80"
+        volumes:
+            - ./:/var/www
+            - ./docker/php/php.ini:/usr/local/etc/php/php.ini
+            - ./storage/app/public:/var/www/storage/app/public
+        networks:
+            - desa-network
+        depends_on:
+            - db
+            - redis
+        environment:
+            - APP_ENV=production
+            - APP_DEBUG=false
+            - DB_HOST=db
+            - DB_DATABASE=desa_bantengputih
+            - DB_USERNAME=desa_user
+            - DB_PASSWORD=desa_password
+            - REDIS_HOST=redis
+            - CACHE_DRIVER=file
+            - SESSION_DRIVER=file
+            - QUEUE_CONNECTION=sync
+
+    db:
+        image: mysql:8.0
+        container_name: desa-bantengputih-db
+        restart: unless-stopped
+        ports:
+            - "3306:3306"
+        environment:
+            MYSQL_DATABASE: desa_bantengputih
+            MYSQL_USER: desa_user
+            MYSQL_PASSWORD: desa_password
+            MYSQL_ROOT_PASSWORD: root_password
+        volumes:
+            - db_data:/var/lib/mysql
+            - ./docker/mysql/init.sql:/docker-entrypoint-initdb.d/init.sql
+        networks:
+            - desa-network
+
+    redis:
+        image: redis:7-alpine
+        container_name: desa-bantengputih-redis
+        restart: unless-stopped
+        ports:
+            - "6379:6379"
+        volumes:
+            - redis_data:/data
+        networks:
+            - desa-network
+
+    phpmyadmin:
+        image: phpmyadmin:latest
+        container_name: desa-bantengputih-phpmyadmin
+        restart: unless-stopped
+        ports:
+            - "8080:80"
+        environment:
+            PMA_HOST: db
+            PMA_USER: desa_user
+            PMA_PASSWORD: desa_password
+        depends_on:
+            - db
+        networks:
+            - desa-network
+
+    mailhog:
+        image: mailhog/mailhog:latest
+        container_name: desa-bantengputih-mailhog
+        restart: unless-stopped
+        ports:
+            - "1025:1025" # SMTP
+            - "8025:8025" # Web UI
+        networks:
+            - desa-network
+
+volumes:
+    db_data:
+    redis_data:
+
+networks:
+    desa-network:
+        driver: bridge
