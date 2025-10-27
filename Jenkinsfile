@@ -63,7 +63,7 @@ pipeline {
 
         stage('Build Docker Image') {
             steps {
-                echo '🐳 Membuat Docker image untuk Laravel project...'
+                echo 'Membuat Docker image untuk Laravel project...'
                 script {
                     if (isUnix()) {
                         sh '''
@@ -75,7 +75,7 @@ pipeline {
                             cd "%WORKSPACE%"
                             docker build -t ${DOCKER_IMAGE} .
                             if %ERRORLEVEL% NEQ 0 (
-                                echo ❌ Gagal membuat Docker image.
+                                echo Gagal membuat Docker image.
                                 exit /b 0
                             )
                         '''
@@ -86,7 +86,7 @@ pipeline {
 
         stage('Deploy via Docker Compose') {
             steps {
-                echo '🚀 Deploy menggunakan Docker Compose...'
+                echo 'Deploy menggunakan Docker Compose...'
                 script {
                     if (isUnix()) {
                         sh '''
@@ -95,14 +95,14 @@ pipeline {
                         '''
                     } else {
                         bat '''
-                            echo 🔄 Menurunkan container lama jika ada...
+                            echo Menurunkan container lama jika ada...
                             docker-compose down 2>nul || echo "Tidak ada container untuk dihentikan."
 
-                            echo 🚀 Menjalankan docker-compose up...
+                            echo Menjalankan docker-compose up...
                             docker-compose up -d --build
 
                             if %ERRORLEVEL% NEQ 0 (
-                                echo ⚠️ Docker Compose gagal, lanjutkan pipeline.
+                                echo Docker Compose gagal, lanjutkan pipeline.
                                 exit /b 0
                             )
                         '''
@@ -112,9 +112,9 @@ pipeline {
         }
 
         stage('Push Docker Image to DockerHub') {
-            when {
-                branch 'main'
-            }
+            // when {
+            //     branch 'main'
+            // }
             steps {
                 echo '📤 Mengirim Docker image ke DockerHub...'
                 withCredentials([usernamePassword(credentialsId: "${DOCKER_CREDENTIALS}", usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
