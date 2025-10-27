@@ -113,7 +113,7 @@ pipeline {
 
         stage('Push Docker Image to DockerHub') {
             // when {
-            //     branch 'main'
+            //     branch 'main'+
             // }
             steps {
                 echo '📤 Mengirim Docker image ke DockerHub...'
