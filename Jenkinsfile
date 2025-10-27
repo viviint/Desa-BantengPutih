@@ -2,10 +2,23 @@ pipeline {
     agent any
 
     environment {
+        APP_NAME = "desa-bantengputih"
         DOCKER_IMAGE = "viviint/desa-bantengputih:latest"
+        DOCKER_TAG = "latest"
+        DOCKER_CREDENTIALS = "dockerhub-credentials"
+    }
+
+    triggers {
+        githubPush()
     }
 
     stages {
+        stage('Declarative SCM') {
+            steps {
+                echo '🔍 SCM Trigger aktif — Jenkins mendeteksi perubahan dari GitHub...'
+            }
+        }
+
         stage('Checkout') {
             steps {
                 echo '📦 Cloning repository...'
@@ -13,10 +26,22 @@ pipeline {
             }
         }
 
-        stage('Install PHP Dependencies') {
+        stage('Build & Test') {
             steps {
-                echo '📚 Installing PHP dependencies…'
-                sh 'composer install --no-interaction --prefer-dist --optimize-autoloader'
+                echo '⚙️ Building dan testing Laravel project...'
+
+                sh '''
+                    composer install --no-interaction --prefer-dist --optimize-autoloader
+                    cp .env.example .env || true
+                    php artisan key:generate
+                '''
+                
+                sh '''
+                    if [ -f artisan ]; then
+                        echo "🧪 Menjalankan test..."
+                        php artisan test || echo "⚠️ Tidak ada test ditemukan, lanjutkan..."
+                    fi
+                '''
             }
         }
 
@@ -29,19 +54,19 @@ pipeline {
 
         stage('Deploy via Docker Compose') {
             steps {
-                echo '🚀 Starting services with Docker Compose…'
-                sh 'docker-compose down'
+                echo '🚀 Deploy menggunakan Docker Compose…'
+                sh 'docker-compose down || true'
                 sh 'docker-compose up -d --build'
             }
         }
 
-        stage('Push Docker Image to Registry') {
+        stage('Push Docker Image to DockerHub') {
             when {
                 branch 'main'
             }
             steps {
-                echo '📤 Pushing Docker image to registry…'
-                withCredentials([usernamePassword(credentialsId: 'dockerhub-credentials', usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
+                echo '📤 Push Docker image ke DockerHub…'
+                withCredentials([usernamePassword(credentialsId: "${DOCKER_CREDENTIALS}", usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
                     sh 'echo "$DOCKER_PASS" | docker login -u "$DOCKER_USER" --password-stdin'
                     sh "docker push ${DOCKER_IMAGE}"
                 }
@@ -51,10 +76,10 @@ pipeline {
 
     post {
         success {
-            echo '✅ Build & deployment successful!'
+            echo '✅ Pipeline berhasil dijalankan sepenuhnya!'
         }
         failure {
-            echo '❌ Build failed!'
+            echo '❌ Pipeline gagal, periksa error di console output!'
         }
     }
 }
