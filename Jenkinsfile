@@ -30,13 +30,13 @@ pipeline {
             steps {
                 echo '⚙️ Building dan testing Laravel project...'
 
-                sh '''
+                bat '''
                     composer install --no-interaction --prefer-dist --optimize-autoloader
                     cp .env.example .env || true
                     php artisan key:generate
                 '''
-                
-                sh '''
+
+                bat '''
                     if [ -f artisan ]; then
                         echo "🧪 Menjalankan test..."
                         php artisan test || echo "⚠️ Tidak ada test ditemukan, lanjutkan..."
@@ -48,15 +48,15 @@ pipeline {
         stage('Build Docker Image') {
             steps {
                 echo '🐳 Building Docker image…'
-                sh "docker build -t ${DOCKER_IMAGE} ."
+                bat "docker build -t ${DOCKER_IMAGE} ."
             }
         }
 
         stage('Deploy via Docker Compose') {
             steps {
                 echo '🚀 Deploy menggunakan Docker Compose…'
-                sh 'docker-compose down || true'
-                sh 'docker-compose up -d --build'
+                bat 'docker-compose down || true'
+                bat 'docker-compose up -d --build'
             }
         }
 
@@ -67,8 +67,8 @@ pipeline {
             steps {
                 echo '📤 Push Docker image ke DockerHub…'
                 withCredentials([usernamePassword(credentialsId: "${DOCKER_CREDENTIALS}", usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
-                    sh 'echo "$DOCKER_PASS" | docker login -u "$DOCKER_USER" --password-stdin'
-                    sh "docker push ${DOCKER_IMAGE}"
+                    bat 'echo "$DOCKER_PASS" | docker login -u "$DOCKER_USER" --password-stdin'
+                    bat "docker push ${DOCKER_IMAGE}"
                 }
             }
         }
