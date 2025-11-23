@@ -116,7 +116,6 @@ pipeline {
             //     branch 'main'+
             // }
             steps {
-                echo '📤 Mengirim Docker image ke DockerHub...'
                 withCredentials([usernamePassword(credentialsId: "${DOCKER_CREDENTIALS}", usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
                     script {
                         if (isUnix()) {
